@@ -1,0 +1,11 @@
+.env*
+!example.env
+!.env.example
+
+local-files/*
+!local-files/.gitkeep
+
+backup-*.sql
+*.log
+.DS_Store
+
