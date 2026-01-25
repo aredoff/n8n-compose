@@ -1,11 +1,10 @@
-.PHONY: help init up down logs backup restore clean health
+.PHONY: help init up down logs backup restore clean health scale
 
 help:
 	@echo "Available commands:"
 	@echo "  make init         - Generate .env file"
-	@echo "  make up-cpu       - Start with CPU Ollama"
-	@echo "  make up-gpu       - Start with GPU Ollama"
-	@echo "  make up           - Start without Ollama"
+	@echo "  make up           - Start all services (3 workers)"
+	@echo "  make scale WORKERS=N - Scale workers to N instances"
 	@echo "  make down         - Stop all services"
 	@echo "  make logs         - Show logs"
 	@echo "  make health       - Check services health"
@@ -16,17 +15,15 @@ help:
 init:
 	@./scripts/generate-secrets.sh
 
-up-cpu:
-	@docker compose --profile cpu up -d
-
-up-gpu:
-	@docker compose --profile gpu up -d
-
 up:
-	@docker compose up -d
+	@docker compose up -d --scale n8n-worker=3
+
+scale:
+	@echo "Usage: make scale WORKERS=N"
+	@test -n "$(WORKERS)" && docker compose up -d --scale n8n-worker=$(WORKERS) || echo "Example: make scale WORKERS=5"
 
 down:
-	@docker compose --profile cpu --profile gpu down
+	@docker compose down
 
 logs:
 	@docker compose logs -f
@@ -44,7 +41,7 @@ restore:
 clean:
 	@echo "WARNING: This will delete all data!"
 	@read -p "Type 'yes' to continue: " confirm && [ "$$confirm" = "yes" ]
-	@docker compose --profile cpu --profile gpu down -v
+	@docker compose down -v
 	@rm -rf local-files/*
 	@touch local-files/.gitkeep
 

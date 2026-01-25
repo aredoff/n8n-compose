@@ -4,11 +4,10 @@ Production-ready n8n deployment with PostgreSQL, Redis, Qdrant vector database, 
 
 ## Features
 
-- **n8n**: Workflow automation with queue mode (Redis-backed)
+- **n8n**: Workflow automation with queue mode + 3 workers
 - **PostgreSQL 17**: Optimized database with tuned parameters
 - **Redis**: Queue management with AOF persistence
 - **Qdrant**: Vector database for embeddings
-- **Ollama**: Local LLM inference (CPU/GPU support)
 - **SearXNG**: Privacy-respecting metasearch engine
 - **Cloudflare Tunnel**: Secure public access
 - **Production-ready**: Resource limits, logging, healthchecks
@@ -31,50 +30,49 @@ Edit `.env` file:
 
 ### 3. Launch Services
 
-Using Makefile (recommended):
+Using Makefile:
 ```bash
-make up-cpu    # CPU mode
-make up-gpu    # GPU mode
-make up        # Without Ollama
+make up
 ```
 
 Or directly:
 ```bash
-docker compose --profile cpu up -d     # CPU mode
-docker compose --profile gpu up -d     # GPU mode
-docker compose up -d                   # Without Ollama
+docker compose up -d
 ```
 
 ## Service Access
 
 - **n8n**: https://YOUR_DOMAIN (via Cloudflare Tunnel)
-- **SearXNG**: http://searxng:8080 (internal, use from n8n HTTP Request node)
+- **SearXNG**: http://searxng:8080/search?q=QUERY&format=json (internal)
 
 All services are internal-only (no external ports exposed).
 Access to internal services only via Docker network.
 
-## Ollama Models
+## n8n Workers
 
-Pre-installed models:
-- `nomic-embed-text`: Embeddings (for n8n Vector Store)
-- `llama3.2`: General purpose LLM
+По умолчанию запускается 3 воркера:
+- Автоматический load balancing через Redis
+- Каждый воркер: 1GB memory limit
 
-Pull additional models:
+**Изменить количество:**
 ```bash
-docker compose exec ollama-cpu ollama pull MODEL_NAME
+# Через Makefile
+make scale WORKERS=5
+
+# Или напрямую
+docker compose up -d --scale n8n-worker=5
 ```
 
-## GPU Setup (Optional)
+## SearXNG Usage
 
-Install NVIDIA Container Toolkit:
-```bash
-distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
-curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
-curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
-
-sudo apt-get update
-sudo apt-get install -y nvidia-container-toolkit
-sudo systemctl restart docker
+Use from n8n HTTP Request node:
+```
+URL: http://searxng:8080/search
+Method: GET
+Query Parameters:
+  - q: your search query
+  - format: json
+  - categories: general (optional)
 ```
 
 ## Management
@@ -113,11 +111,11 @@ make clean
 
 ### Resource Limits
 - **PostgreSQL**: 1GB limit, 512MB reserved
-- **n8n**: 2GB limit, 512MB reserved  
+- **n8n**: 2GB limit, 512MB reserved
+- **n8n Workers**: 1GB each (x3)
 - **Redis**: 512MB limit, 256MB reserved (256MB maxmemory)
 - **Qdrant**: 1GB limit, 512MB reserved
 - **SearXNG**: 512MB limit, 256MB reserved
-- **Ollama**: 4GB limit, 2GB reserved
 - **Cloudflared**: 256MB limit, 64MB reserved
 
 ### PostgreSQL Tuning
@@ -128,9 +126,11 @@ make clean
 - Optimized for SSD storage
 
 ### n8n Queue Mode
-- Redis-backed queue for parallel execution
+- Redis-backed queue with 3 workers
+- Parallel execution across workers
 - Automatic pruning (7 days retention)
 - 16MB max payload size
+- Horizontal scaling ready
 
 ### Logging
 - JSON log driver with rotation
@@ -154,6 +154,8 @@ make clean
 ├── scripts/
 │   ├── generate-secrets.sh # Secret generation utility
 │   └── health-check.sh     # Health monitoring script
+├── searxng/
+│   └── settings-base.yml   # SearXNG configuration
 └── local-files/            # Shared files volume
     └── .gitkeep
 ```
@@ -187,8 +189,9 @@ rm .env
 | `QDRANT_API_KEY` | Qdrant API key | auto-generated |
 | `QDRANT_LOG_LEVEL` | Qdrant log level | INFO |
 | `REDIS_PASSWORD` | Redis password | auto-generated |
-| `SEARXNG_SECRET` | SearXNG secret key | auto-generated |
 | `SEARXNG_BASE_URL` | SearXNG base URL | http://searxng:8080/ |
+| `SEARXNG_UWSGI_WORKERS` | SearXNG workers | 4 |
+| `SEARXNG_UWSGI_THREADS` | SearXNG threads | 4 |
 
 ## License
 

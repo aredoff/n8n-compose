@@ -27,13 +27,8 @@ done
 
 echo ""
 
-if docker compose ps --format json | jq -e '.[] | select(.Service == "ollama-cpu" and .State == "running")' > /dev/null 2>&1; then
-    echo "✓ Ollama (CPU) is running"
-elif docker compose ps --format json | jq -e '.[] | select(.Service == "ollama-gpu" and .State == "running")' > /dev/null 2>&1; then
-    echo "✓ Ollama (GPU) is running"
-else
-    echo "ℹ Ollama is not running (optional)"
-fi
+workers_count=$(docker compose ps --format json 2>/dev/null | jq -r '.[] | select(.Service | startswith("n8n-worker")) | .Service' | wc -l)
+echo "ℹ n8n Workers running: $workers_count"
 
 if docker compose ps --format json | jq -e '.[] | select(.Service == "cloudflared" and .State == "running")' > /dev/null 2>&1; then
     echo "✓ Cloudflare Tunnel is running"
@@ -43,5 +38,5 @@ fi
 
 echo ""
 echo "=== Resource Usage ==="
-docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}" 2>/dev/null | grep -E "n8n|postgres|redis|qdrant|searxng|ollama|cloudflared" || echo "No containers running"
+docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}" 2>/dev/null | grep -E "n8n|postgres|redis|qdrant|searxng|cloudflared" || echo "No containers running"
 

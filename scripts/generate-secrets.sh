@@ -21,7 +21,6 @@ POSTGRES_NON_ROOT_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
 N8N_ENCRYPTION_KEY=$(openssl rand -hex 32)
 QDRANT_API_KEY=$(openssl rand -base64 48 | tr -d "=+/" | cut -c1-48)
 REDIS_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
-SEARXNG_SECRET=$(openssl rand -hex 32)
 
 cp "$EXAMPLE_FILE" "$ENV_FILE"
 
@@ -30,7 +29,6 @@ sed -i "s|^POSTGRES_NON_ROOT_PASSWORD=.*|POSTGRES_NON_ROOT_PASSWORD=$POSTGRES_NO
 sed -i "s|^N8N_ENCRYPTION_KEY=.*|N8N_ENCRYPTION_KEY=$N8N_ENCRYPTION_KEY|" "$ENV_FILE"
 sed -i "s|^QDRANT_API_KEY=.*|QDRANT_API_KEY=$QDRANT_API_KEY|" "$ENV_FILE"
 sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$REDIS_PASSWORD|" "$ENV_FILE"
-sed -i "s|^SEARXNG_SECRET=.*|SEARXNG_SECRET=$SEARXNG_SECRET|" "$ENV_FILE"
 
 echo "✓ .env file created successfully!"
 echo ""
@@ -44,4 +42,3 @@ echo "  - POSTGRES_NON_ROOT_PASSWORD"
 echo "  - N8N_ENCRYPTION_KEY"
 echo "  - QDRANT_API_KEY"
 echo "  - REDIS_PASSWORD"
-echo "  - SEARXNG_SECRET"
